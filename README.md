@@ -61,4 +61,3 @@ SeaTrack/
 Kami sangat terbuka untuk kontributor! Silakan buka *issue* atau kirimkan *pull request* untuk membantu membersihkan perairan kita.
 
 ---
-*Developed with ❤️ for the Oceans.*
