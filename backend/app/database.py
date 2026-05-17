@@ -1,48 +1,50 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 """
-DATABASE MODULE
----------------
-Modul ini bertanggung jawab untuk mengatur koneksi antara aplikasi FastAPI 
-dan database PostgreSQL menggunakan SQLAlchemy ORM.
+DATABASE CONFIGURATION MODULE
+-----------------------------
+Modul ini mengelola koneksi database dan konfigurasi lingkungan.
+Menggunakan Pydantic Settings untuk membaca variabel dari file .env.
 """
 
-# 1. Database URL
-# Format: postgresql://[user]:[password]@[host]:[port]/[db_name]
-# TODO: Pindahkan kredensial ini ke file .env demi keamanan produksi
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:password_anda@localhost:5432/seatrack_db"
+class Settings(BaseSettings):
+    """
+    Class Settings
+    --------------
+    Membaca variabel lingkungan secara otomatis. 
+    Jika file .env ada, maka nilai di dalamnya akan diutamakan.
+    """
+    # Default URL (fallback)
+    DATABASE_URL: str = "postgresql://postgres:123@localhost:5432/seatrack_db"
+    
+    # Konfigurasi untuk membaca file .env
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-# 2. Engine Creation
-# Engine adalah titik masuk utama untuk koneksi database.
-# 'create_engine' akan mengelola pool koneksi ke PostgreSQL.
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL
-)
+# Inisialisasi settings
+settings = Settings()
 
-# 3. Session Configuration
-# SessionLocal adalah class yang akan kita instansiasi untuk setiap request database.
-# autocommit=False: Perubahan tidak langsung disimpan sampai kita memanggil session.commit()
-# autoflush=False: Mencegah SQL dikirim ke DB secara otomatis sebelum commit
+# 1. Engine Creation
+connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(settings.DATABASE_URL, connect_args=connect_args)
+
+# 2. Session Configuration
 sessionmaker_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 4. Base Class
-# Base adalah class dasar yang akan diwarisi oleh semua model database kita (di models.py).
-# SQLAlchemy menggunakan ini untuk memetakan class Python ke tabel database.
+# 3. Base Class
 Base = declarative_base()
 
 def get_db():
     """
     Dependency Generator
     --------------------
-    Fungsi ini akan digunakan sebagai 'Dependency' di FastAPI.
-    Fungsi ini membuka sesi database saat request masuk dan 
-    memastikan sesi ditutup setelah request selesai, baik sukses maupun error.
+    Menyediakan sesi database untuk setiap request API.
+    Memastikan koneksi ditutup setelah request selesai.
     """
     db = sessionmaker_factory()
     try:
         yield db
     finally:
-        # Menutup koneksi untuk mencegah kebocoran resource
         db.close()
