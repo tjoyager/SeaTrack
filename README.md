@@ -16,7 +16,7 @@ SeaTrack mengintegrasikan beberapa modul utama:
     *   Mengirimkan koordinat deteksi dan metadata ke backend melalui protokol HTTP/Websocket.
 4.  **Backend (Central Logic):**
     *   Dibangun dengan **FastAPI**.
-    *   Menyimpan riwayat deteksi ke database **PostgreSQL**.
+    *   Menyimpan riwayat deteksi ke database **SQLite** (lokal).
     *   Menyediakan API untuk dashboard monitoring.
 
 ## 📁 Struktur Folder
@@ -26,20 +26,31 @@ SeaTrack/
 ├── ros2_ws/          # Workspace ROS 2 (Nodes & Interfaces)
 │   └── src/
 ├── backend/          # API Service (FastAPI)
-│   └── app/
+│   ├── app/          # Source code aplikasi
+│   ├── venv/         # Virtual environment Python
+│   └── seatrack.db   # Database SQLite (lokal)
 ├── ml_models/        # Model Weights & Inference Scripts
 │   ├── weights/
 │   └── scripts/
 └── docs/             # Dokumentasi teknis tambahan
 ```
 
+## 🛠️ Setup Backend
+
+Untuk menjalankan backend secara lokal:
+
+```bash
+cd backend
+./venv/bin/uvicorn app.main:app --reload
+```
+
 ## 📅 Roadmap 1 Bulan (MVP Phase)
 
 ### Minggu 1: Fondasi & Setup Lingkungan
-- [ ] Inisialisasi struktur proyek dan kontrol versi.
-- [ ] Setup Docker environment untuk database PostgreSQL.
+- [x] Inisialisasi struktur proyek dan kontrol versi.
+- [x] Setup database lokal menggunakan SQLite.
 - [ ] Konfigurasi dasar workspace ROS 2 Humble/Foxy.
-- [ ] Pembuatan skema database awal di FastAPI.
+- [x] Pembuatan skema database awal di FastAPI.
 
 ### Minggu 2: Ingesti Data & ML Baseline
 - [ ] Implementasi ROS 2 node untuk pembacaan feed kamera (USB/RTSP).
