@@ -31,6 +31,7 @@ setup(
             # Format: 'nama_alias = package.file:fungsi_utama'
             'camera_node = seatrack_perception.camera_node:main',
             'yolo_node = seatrack_perception.yolo_node:main',
+            'telemetry_node = seatrack_perception.telemetry_node:main',
         ],
     },
 )
