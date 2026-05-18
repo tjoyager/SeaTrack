@@ -30,6 +30,7 @@ setup(
             # Mendefinisikan perintah eksekusi untuk camera_node
             # Format: 'nama_alias = package.file:fungsi_utama'
             'camera_node = seatrack_perception.camera_node:main',
+            'yolo_node = seatrack_perception.yolo_node:main',
         ],
     },
 )
