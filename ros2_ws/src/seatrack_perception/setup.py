@@ -1,3 +1,5 @@
+import os
+from glob import glob
 from setuptools import find_packages, setup
 
 package_name = 'seatrack_perception'
@@ -13,6 +15,9 @@ setup(
             ['resource/' + package_name]),
         # Menyertakan package.xml agar terdeteksi oleh sistem build colcon
         ('share/' + package_name, ['package.xml']),
+        # Mendaftarkan seluruh file launch agar di-copy ke folder instalasi colcon
+        # Perintah ini memberitahu ROS 2 di mana mencari file .launch.py saat dijalankan
+        (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*launch.[pxy][yma]*'))),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
