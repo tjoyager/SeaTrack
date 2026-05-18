@@ -7,68 +7,73 @@
 SeaTrack mengintegrasikan beberapa modul utama:
 
 1.  **ROS 2 Node (Perception Layer):**
-    *   Membaca feed kamera dari hardware robot.
-    *   Mengolah stream video untuk deteksi.
+    *   `camera_node`: Membaca feed kamera dari hardware robot.
+    *   `yolo_node`: Menjalankan inferensi model **YOLOv11** secara real-time.
+    *   `telemetry_node`: Jembatan (bridge) data antara ROS 2 dan Backend FastAPI.
 2.  **ML Engine (Detection Layer):**
-    *   Menjalankan model **YOLOv11** yang dioptimalkan dengan **OpenVINO**.
-    *   Melakukan klasifikasi dan lokalisasi jenis sampah.
-3.  **Telemetry Sender:**
-    *   Mengirimkan koordinat deteksi dan metadata ke backend melalui protokol HTTP/Websocket.
-4.  **Backend (Central Logic):**
+    *   Menjalankan model **YOLOv11** (v11n.pt) untuk klasifikasi dan lokalisasi jenis sampah.
+3.  **Backend (Central Logic):**
     *   Dibangun dengan **FastAPI**.
-    *   Menyimpan riwayat deteksi ke database **SQLite** (lokal).
+    *   Menyimpan riwayat deteksi ke database **SQLite**.
     *   Menyediakan API untuk dashboard monitoring.
 
 ## 📁 Struktur Folder
 
 ```text
 SeaTrack/
-├── ros2_ws/          # Workspace ROS 2 (Nodes & Interfaces)
+├── ros2_ws/          # Workspace ROS 2 (Humble)
 │   └── src/
+│       └── seatrack_perception/
+│           ├── launch/                 # ROS 2 Launch files
+│           ├── seatrack_perception/    # Source code node (Python)
+│           └── ...
 ├── backend/          # API Service (FastAPI)
-│   ├── app/          # Source code aplikasi
-│   ├── venv/         # Virtual environment Python
-│   └── seatrack.db   # Database SQLite (lokal)
+│   ├── app/          # Source code aplikasi (CRUD, Models, Schemas)
+│   └── seatrack.db   # Database SQLite
 ├── ml_models/        # Model Weights & Inference Scripts
-│   ├── weights/
-│   └── scripts/
-└── docs/             # Dokumentasi teknis tambahan
+└── README.md
 ```
 
-## 🛠️ Setup Backend
+## 🛠️ Cara Menjalankan Sistem
 
-Untuk menjalankan backend secara lokal:
-
+### 1. Jalankan Backend (FastAPI)
+Buka terminal baru:
 ```bash
 cd backend
-./venv/bin/uvicorn app.main:app --reload
+source venv/bin/activate
+uvicorn app.main:app --reload
 ```
 
-## 📅 Roadmap 1 Bulan (MVP Phase)
+### 2. Jalankan Sistem Persepsi (ROS 2)
+Buka terminal baru:
+```bash
+cd ros2_ws
+source install/setup.bash
+ros2 launch seatrack_perception perception_launch.py
+```
 
-### Minggu 1: Fondasi & Setup Lingkungan
-- [x] Inisialisasi struktur proyek dan kontrol versi.
-- [x] Setup database lokal menggunakan SQLite.
-- [ ] Konfigurasi dasar workspace ROS 2 Humble/Foxy.
-- [x] Pembuatan skema database awal di FastAPI.
+## 📅 Progress & Roadmap (MVP Phase)
 
-### Minggu 2: Ingesti Data & ML Baseline
-- [ ] Implementasi ROS 2 node untuk pembacaan feed kamera (USB/RTSP).
-- [ ] Integrasi model YOLOv11 standar ke dalam pipeline ROS 2.
-- [ ] Uji coba inferensi awal menggunakan OpenCV/OpenVINO.
+### Minggu 1-2: Fondasi & Setup Lingkungan
+- [x] Inisialisasi struktur proyek dan workspace ROS 2.
+- [x] Setup database lokal menggunakan SQLite dan skema Pydantic.
+- [x] Implementasi `camera_node` untuk pembacaan feed kamera (USB/OpenCV).
 
-### Minggu 3: Integrasi Backend & Telemetri
-- [ ] Pengembangan API Endpoint di FastAPI untuk menerima data deteksi.
-- [ ] Implementasi node telemetri di ROS 2 untuk mengirim data ke Backend.
-- [ ] Sinkronisasi data real-time antara robot dan server.
+### Minggu 3: Deteksi AI & Integrasi Backend (Current)
+- [x] Integrasi model **YOLOv11n** ke dalam pipeline ROS 2 (`yolo_node`).
+- [x] Ekstraksi metadata deteksi (JSON) dan anotasi visual secara real-time.
+- [x] Implementasi `telemetry_node` dengan fitur **Throttling/Rate Limiting** (2 detik) untuk efisiensi backend.
+- [x] Penanganan error sinkronisasi skema data (Fix 422 Unprocessable Entity).
+- [x] Pembuatan **ROS 2 Launch File** untuk orkestrasi node secara paralel.
 
-### Minggu 4: Optimasi & Dokumentasi
+### Minggu 4: Optimasi & Visualisasi
+- [ ] Pengujian lapangan dengan data sampah sungai asli.
 - [ ] Fine-tuning performa inferensi pada perangkat edge.
 - [ ] Pembuatan dashboard sederhana untuk visualisasi hasil deteksi.
-- [ ] Finalisasi dokumentasi API dan panduan deployment.
 
 ## 🤝 Kontribusi
 
 Kami sangat terbuka untuk kontributor! Silakan buka *issue* atau kirimkan *pull request* untuk membantu membersihkan perairan kita.
 
 ---
+*Last Updated: Hari ke-9 - Integrasi End-to-End Berhasil.*
