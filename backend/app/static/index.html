@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SeaTrack - Surface Control Dashboard</title>
+    <!-- Menggunakan Tailwind CSS via CDN untuk styling yang cepat dan responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+
+    <!-- Header / Navigasi -->
+    <nav class="bg-blue-600 p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-white text-2xl font-bold">🌊 SeaTrack Surface Control</h1>
+            <div id="status-badge" class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                Status: Terhubung
+            </div>
+        </div>
+    </nav>
+
+    <!-- Konten Utama -->
+    <main class="container mx-auto mt-8 p-4">
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-xl font-semibold text-gray-800">Riwayat Deteksi Sampah Perairan</h2>
+                <p class="text-sm text-gray-500">Auto-refresh setiap 3 detik</p>
+            </div>
+            
+            <!-- Tabel Data Telemetri -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead class="bg-gray-800 text-white">
+                        <tr>
+                            <th class="w-1/12 py-3 px-4 uppercase font-semibold text-sm">ID</th>
+                            <th class="w-2/12 py-3 px-4 uppercase font-semibold text-sm">Waktu Deteksi</th>
+                            <th class="w-2/12 py-3 px-4 uppercase font-semibold text-sm">Jenis Sampah</th>
+                            <th class="w-2/12 py-3 px-4 uppercase font-semibold text-sm">Confidence</th>
+                            <th class="w-2/12 py-3 px-4 uppercase font-semibold text-sm">Latitude</th>
+                            <th class="w-2/12 py-3 px-4 uppercase font-semibold text-sm">Longitude</th>
+                        </tr>
+                    </thead>
+                    <tbody id="telemetry-table-body" class="text-gray-700">
+                        <!-- Data akan dimasukkan di sini secara dinamis oleh JavaScript -->
+                        <tr>
+                            <td colspan="6" class="py-10 text-center text-gray-400">Sedang memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-10 text-center text-gray-500 text-sm pb-10">
+        &copy; 2026 SeaTrack Project - Hari ke-10: Dashboard Implementation
+    </footer>
+
+    <script>
+        /**
+         * LOGIKA JAVASCRIPT UNTUK AUTO-REFRESH DASHBOARD
+         * ---------------------------------------------
+         * Script ini bertugas mengambil data dari API backend dan memperbarui tabel UI.
+         */
+
+        // Fungsi utama untuk mengambil data (fetch) dari backend
+        async function fetchTelemetryData() {
+            try {
+                // Melakukan request GET ke endpoint telemetry
+                // Kita mengambil 15 data terbaru
+                const response = await fetch('/telemetry/?limit=15');
+                
+                if (!response.ok) {
+                    throw new Error('Gagal mengambil data dari server');
+                }
+
+                const data = await response.json();
+                
+                // Memanggil fungsi untuk memperbarui tampilan tabel
+                updateTableUI(data);
+                
+                // Update badge status jika berhasil
+                document.getElementById('status-badge').innerText = 'Status: Terhubung';
+                document.getElementById('status-badge').classList.replace('bg-red-500', 'bg-green-500');
+
+            } catch (error) {
+                console.error('Error:', error);
+                // Update badge status jika gagal koneksi
+                document.getElementById('status-badge').innerText = 'Status: Terputus';
+                document.getElementById('status-badge').classList.replace('bg-green-500', 'bg-red-500');
+            }
+        }
+
+        /**
+         * Fungsi untuk Memanipulasi DOM dan Memperbarui Baris Tabel
+         * @param {Array} telemetries - List data telemetry dari API
+         */
+        function updateTableUI(telemetries) {
+            const tableBody = document.getElementById('telemetry-table-body');
+            
+            // Bersihkan isi tabel lama sebelum memasukkan data baru
+            tableBody.innerHTML = '';
+
+            // Jika tidak ada data, tampilkan pesan kosong
+            if (telemetries.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="py-4 text-center">Belum ada data deteksi.</td></tr>';
+                return;
+            }
+
+            // Lakukan looping pada setiap data telemetry
+            telemetries.forEach(item => {
+                // Buat elemen baris tabel (tr)
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-100 border-b border-gray-200 transition-colors duration-200';
+
+                // Format timestamp agar lebih mudah dibaca (Bahasa Indonesia)
+                const date = new Date(item.timestamp);
+                const formattedTime = date.toLocaleString('id-ID');
+
+                // Isi baris dengan data (td)
+                // Menggunakan template literals untuk menyusun HTML
+                row.innerHTML = `
+                    <td class="py-3 px-4 text-center font-medium">${item.id}</td>
+                    <td class="py-3 px-4">${formattedTime}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-bold uppercase">
+                            ${item.object_type}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 font-mono">${(item.confidence * 100).toFixed(1)}%</td>
+                    <td class="py-3 px-4 text-sm">${item.latitude.toFixed(6)}</td>
+                    <td class="py-3 px-4 text-sm">${item.longitude.toFixed(6)}</td>
+                `;
+
+                // Masukkan baris yang sudah jadi ke dalam body tabel
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Jalankan fetch pertama kali saat halaman dimuat
+        fetchTelemetryData();
+
+        // Atur interval untuk menjalankan fetch setiap 3000ms (3 detik)
+        // Ini memastikan dashboard selalu menampilkan data terbaru secara real-time
+        setInterval(fetchTelemetryData, 3000);
+
+    </script>
+</body>
+</html>

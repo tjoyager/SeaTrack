@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi.staticfiles import StaticFiles # Import untuk melayani file statis (HTML, CSS, JS)
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -24,7 +25,12 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# 3. Root Endpoint
+# 3. Konfigurasi Static Files
+# Mount folder 'static' agar bisa diakses via browser.
+# Misalnya: file 'index.html' di 'app/static/' akan bisa diakses di 'http://localhost:8000/static/index.html'
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# 4. Root Endpoint
 @app.get("/")
 def read_root():
     """
