@@ -63,3 +63,8 @@ ml_models/weights/*.xml
 # Environment variables
 .env
 .env.local
+
+# Databases
+*.db
+*.db-journal
+*.db-wal

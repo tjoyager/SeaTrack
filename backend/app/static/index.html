@@ -6,142 +6,212 @@
     <title>SeaTrack - Surface Control Dashboard</title>
     <!-- Menggunakan Tailwind CSS via CDN untuk styling yang cepat dan responsif -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 1. Integrasi Leaflet.js CSS: Library peta interaktif -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <!-- 1. Integrasi Leaflet.js JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <style>
+        /* Memastikan container peta memiliki tinggi yang cukup */
+        #map { height: 600px; width: 100%; }
+        /* Kustomisasi scrollbar untuk tabel */
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
 </head>
 <body class="bg-gray-100 font-sans leading-normal tracking-normal">
 
     <!-- Header / Navigasi -->
     <nav class="bg-blue-600 p-4 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-white text-2xl font-bold">🌊 SeaTrack Surface Control</h1>
-            <div id="status-badge" class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+            <h1 class="text-white text-2xl font-bold">SeaTrack Surface Control</h1>
+            <div id="status-badge" class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold transition-colors duration-500">
                 Status: Terhubung
             </div>
         </div>
     </nav>
 
-    <!-- Konten Utama -->
+    <!-- 2. Penyesuaian Layout UI: Grid responsif untuk Peta dan Tabel -->
     <main class="container mx-auto mt-8 p-4">
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h2 class="text-xl font-semibold text-gray-800">Riwayat Deteksi Sampah Perairan</h2>
-                <p class="text-sm text-gray-500">Auto-refresh setiap 3 detik</p>
-            </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            <!-- Tabel Data Telemetri -->
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white">
-                    <thead class="bg-gray-800 text-white">
-                        <tr>
-                            <th class="w-1/12 py-3 px-4 uppercase font-semibold text-sm">ID</th>
-                            <th class="w-2/12 py-3 px-4 uppercase font-semibold text-sm">Waktu Deteksi</th>
-                            <th class="w-2/12 py-3 px-4 uppercase font-semibold text-sm">Jenis Sampah</th>
-                            <th class="w-2/12 py-3 px-4 uppercase font-semibold text-sm">Confidence</th>
-                            <th class="w-2/12 py-3 px-4 uppercase font-semibold text-sm">Latitude</th>
-                            <th class="w-2/12 py-3 px-4 uppercase font-semibold text-sm">Longitude</th>
-                        </tr>
-                    </thead>
-                    <tbody id="telemetry-table-body" class="text-gray-700">
-                        <!-- Data akan dimasukkan di sini secara dinamis oleh JavaScript -->
-                        <tr>
-                            <td colspan="6" class="py-10 text-center text-gray-400">Sedang memuat data...</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <!-- Kolom Kiri: Visualisasi Peta -->
+            <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+                <div class="p-4 border-b border-gray-200 bg-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-800">📍 Peta Sebaran Sampah (Real-time)</h2>
+                </div>
+                <div id="map" class="z-10">
+                    <!-- Peta Leaflet akan muncul di sini -->
+                </div>
             </div>
+
+            <!-- Kolom Kanan: Log Deteksi -->
+            <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200 flex flex-col">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-gray-800">Riwayat Deteksi Terkini</h2>
+                    <p class="text-xs text-gray-500 italic">Auto-refresh: 3s</p>
+                </div>
+                
+                <!-- Tabel Data Telemetri -->
+                <div class="overflow-x-auto overflow-y-auto max-h-[550px] custom-scroll">
+                    <table class="min-w-full bg-white">
+                        <thead class="bg-gray-800 text-white sticky top-0">
+                            <tr>
+                                <th class="py-3 px-4 uppercase font-semibold text-xs text-left">ID</th>
+                                <th class="py-3 px-4 uppercase font-semibold text-xs text-left">Jenis</th>
+                                <th class="py-3 px-4 uppercase font-semibold text-xs text-left">Conf.</th>
+                                <th class="py-3 px-4 uppercase font-semibold text-xs text-left">Koordinat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="telemetry-table-body" class="text-gray-700 divide-y divide-gray-100">
+                            <tr>
+                                <td colspan="4" class="py-10 text-center text-gray-400">Sedang memuat data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </main>
 
     <!-- Footer -->
     <footer class="mt-10 text-center text-gray-500 text-sm pb-10">
-        &copy; 2026 SeaTrack Project - Hari ke-10: Dashboard Implementation
+        &copy; 2026 SeaTrack Project - Hari ke-11: Interactive Map Integration
     </footer>
 
     <script>
         /**
-         * LOGIKA JAVASCRIPT UNTUK AUTO-REFRESH DASHBOARD
-         * ---------------------------------------------
-         * Script ini bertugas mengambil data dari API backend dan memperbarui tabel UI.
+         * 3. UPDATE SCRIPT AUTO-REFRESH & LEAFLET INTEGRATION
+         * ---------------------------------------------------
          */
 
-        // Fungsi utama untuk mengambil data (fetch) dari backend
+        // Variabel global untuk peta dan koleksi marker
+        let map;
+        // Objek 'markers' digunakan untuk menyimpan referensi marker berdasarkan ID data.
+        // Ini kunci untuk mencegah duplikasi marker di peta.
+        let markers = {}; 
+
+        /**
+         * Inisialisasi Peta Leaflet
+         * Dijalankan sekali saat halaman pertama kali dimuat.
+         */
+        function initMap() {
+            // Set view ke koordinat kampus (ITS Surabaya) sebagai default
+            map = L.map('map').setView([-7.2756, 112.7939], 16);
+
+            // Tambahkan layer peta dari OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            console.log("Peta berhasil diinisialisasi.");
+        }
+
+        /**
+         * Fungsi utama untuk mengambil data (fetch) dari backend
+         */
         async function fetchTelemetryData() {
             try {
-                // Melakukan request GET ke endpoint telemetry
-                // Kita mengambil 15 data terbaru
-                const response = await fetch('/telemetry/?limit=15');
+                // Mengambil 20 data terbaru untuk divisualisasikan
+                const response = await fetch('/telemetry/?limit=20');
                 
-                if (!response.ok) {
-                    throw new Error('Gagal mengambil data dari server');
-                }
+                if (!response.ok) throw new Error('Gagal koneksi ke API');
 
                 const data = await response.json();
                 
-                // Memanggil fungsi untuk memperbarui tampilan tabel
+                // Update Tabel
                 updateTableUI(data);
+                // Update Marker di Peta
+                updateMapMarkers(data);
                 
-                // Update badge status jika berhasil
                 document.getElementById('status-badge').innerText = 'Status: Terhubung';
                 document.getElementById('status-badge').classList.replace('bg-red-500', 'bg-green-500');
 
             } catch (error) {
-                console.error('Error:', error);
-                // Update badge status jika gagal koneksi
+                console.error('Fetch Error:', error);
                 document.getElementById('status-badge').innerText = 'Status: Terputus';
                 document.getElementById('status-badge').classList.replace('bg-green-500', 'bg-red-500');
             }
         }
 
         /**
-         * Fungsi untuk Memanipulasi DOM dan Memperbarui Baris Tabel
-         * @param {Array} telemetries - List data telemetry dari API
+         * Menambahkan Marker ke Peta tanpa Duplikasi
+         * @param {Array} telemetries - Data dari backend
+         */
+        function updateMapMarkers(telemetries) {
+            telemetries.forEach(item => {
+                // LOGIKA PENCEGAHAN DUPLIKASI:
+                // Kita cek apakah 'item.id' sudah ada di dalam objek 'markers'.
+                if (!markers[item.id]) {
+                    
+                    // Membuat marker baru pada koordinat lat, lon
+                    const marker = L.marker([item.latitude, item.longitude]).addTo(map);
+
+                    // Menambahkan Popup yang muncul saat marker di-klik
+                    // CATATAN: Menggunakan 'object_class' dan 'confidence_score' sesuai schema backend
+                    const popupContent = `
+                        <div class="text-sm">
+                            <strong class="text-blue-600 uppercase">${item.object_class}</strong><br>
+                            Confidence: <b>${(item.confidence_score * 100).toFixed(1)}%</b><br>
+                            <span class="text-gray-500 text-xs">${new Date(item.timestamp).toLocaleString('id-ID')}</span>
+                        </div>
+                    `;
+                    marker.bindPopup(popupContent);
+
+                    // Simpan referensi marker ke dalam objek agar tidak dibuat ulang nanti
+                    markers[item.id] = marker;
+                    
+                    console.log(`Marker baru ditambahkan: ID ${item.id}`);
+                }
+            });
+        }
+
+        /**
+         * Memperbarui Tampilan Tabel
          */
         function updateTableUI(telemetries) {
             const tableBody = document.getElementById('telemetry-table-body');
-            
-            // Bersihkan isi tabel lama sebelum memasukkan data baru
             tableBody.innerHTML = '';
 
-            // Jika tidak ada data, tampilkan pesan kosong
             if (telemetries.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="6" class="py-4 text-center">Belum ada data deteksi.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="4" class="py-4 text-center">Belum ada data.</td></tr>';
                 return;
             }
 
-            // Lakukan looping pada setiap data telemetry
             telemetries.forEach(item => {
-                // Buat elemen baris tabel (tr)
                 const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-100 border-b border-gray-200 transition-colors duration-200';
+                row.className = 'hover:bg-blue-50 transition-colors duration-150 cursor-pointer border-b border-gray-50';
+                
+                // Tambahkan event click agar saat baris tabel di-klik, peta fokus ke marker tsb
+                row.onclick = () => {
+                    map.setView([item.latitude, item.longitude], 18, { animate: true });
+                    markers[item.id].openPopup();
+                };
 
-                // Format timestamp agar lebih mudah dibaca (Bahasa Indonesia)
-                const date = new Date(item.timestamp);
-                const formattedTime = date.toLocaleString('id-ID');
-
-                // Isi baris dengan data (td)
-                // Menggunakan template literals untuk menyusun HTML
                 row.innerHTML = `
-                    <td class="py-3 px-4 text-center font-medium">${item.id}</td>
-                    <td class="py-3 px-4">${formattedTime}</td>
+                    <td class="py-3 px-4 text-[10px] font-mono text-gray-400">${item.id}</td>
                     <td class="py-3 px-4">
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-bold uppercase">
-                            ${item.object_type}
+                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] font-bold uppercase">
+                            ${item.object_class}
                         </span>
                     </td>
-                    <td class="py-3 px-4 font-mono">${(item.confidence * 100).toFixed(1)}%</td>
-                    <td class="py-3 px-4 text-sm">${item.latitude.toFixed(6)}</td>
-                    <td class="py-3 px-4 text-sm">${item.longitude.toFixed(6)}</td>
+                    <td class="py-3 px-4 text-xs font-semibold">${(item.confidence_score * 100).toFixed(0)}%</td>
+                    <td class="py-3 px-4 text-[10px] text-gray-500 text-right">
+                        ${item.latitude.toFixed(5)}, ${item.longitude.toFixed(5)}
+                    </td>
                 `;
-
-                // Masukkan baris yang sudah jadi ke dalam body tabel
                 tableBody.appendChild(row);
             });
         }
 
-        // Jalankan fetch pertama kali saat halaman dimuat
+        // Inisialisasi Peta & Load Data Pertama Kali
+        initMap();
         fetchTelemetryData();
 
-        // Atur interval untuk menjalankan fetch setiap 3000ms (3 detik)
-        // Ini memastikan dashboard selalu menampilkan data terbaru secara real-time
+        // Refresh data setiap 3 detik
         setInterval(fetchTelemetryData, 3000);
 
     </script>
