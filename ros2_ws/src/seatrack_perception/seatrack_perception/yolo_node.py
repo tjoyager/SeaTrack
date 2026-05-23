@@ -6,6 +6,7 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import String  # Import tipe pesan String untuk data JSON
 from cv_bridge import CvBridge
 import cv2
+import os
 from ultralytics import YOLO
 import json  # Import library JSON untuk memformat data metadata
 
@@ -13,9 +14,20 @@ class YoloNode(Node):
     def __init__(self):
         super().__init__('yolo_node')
         
-        # Inisialisasi model YOLOv11 (versi nano untuk performa optimal di edge device)
-        self.get_logger().info('Memuat model YOLOv11n...')
-        self.model = YOLO('yolo11n.pt')
+        # 1. Deklarasi Parameter Model
+        # Mendapatkan path absolut ke folder project untuk default value
+        default_model_path = os.path.join(os.path.expanduser('~'), 'Project', 'SeaTrack', 'ml_models', 'weights', 'yolo11n_seatrack_best.pt')
+        
+        self.declare_parameter('model_path', default_model_path)
+        model_path = self.get_parameter('model_path').get_parameter_value().string_value
+        
+        # 2. Inisialisasi model YOLOv11
+        if not os.path.exists(model_path):
+            self.get_logger().warn(f'Model kustom tidak ditemukan di {model_path}. Menggunakan model default yolo11n.pt')
+            model_path = 'yolo11n.pt'
+        
+        self.get_logger().info(f'Memuat model dari: {model_path}')
+        self.model = YOLO(model_path)
         
         # Inisialisasi CvBridge untuk konversi antara ROS 2 Image dan OpenCV
         self.bridge = CvBridge()

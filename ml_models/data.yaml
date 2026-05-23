@@ -1,0 +1,19 @@
+# File Konfigurasi Dataset SeaTrack untuk YOLOv11
+# ------------------------------------------------
+# Mendefinisikan lokasi data dan kelas objek yang akan dideteksi.
+
+# Path root dataset (bisa absolut atau relatif terhadap lokasi script training)
+path: ../dataset  
+
+# Sub-folder relatif terhadap 'path' untuk masing-masing set data
+train: train/images  # Data untuk proses belajar model
+val: val/images      # Data untuk validasi akurasi selama training
+test: test/images    # Data untuk pengujian akhir (opsional)
+
+# Definisi Kelas: Nomor ID harus berurutan mulai dari 0
+names:
+  0: plastic_bottle
+  1: fishing_net
+  2: metal_can
+  3: plastic_bag
+  4: styrofoam
