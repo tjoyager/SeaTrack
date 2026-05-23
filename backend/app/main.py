@@ -52,18 +52,8 @@ def create_telemetry_endpoint(
     db: Session = Depends(get_db)
 ):
     """
-    Endpoint POST untuk Menerima Data Deteksi Baru
-    ---------------------------------------------
-    Endpoint ini akan dipanggil oleh robot (node ROS 2) setiap kali ada sampah terdeteksi.
-    
-    Alur Logika:
-    1. FastAPI menerima JSON request body.
-    2. Pydantic (schemas.TelemetryCreate) memvalidasi tipe data & struktur JSON.
-    3. Jika valid, 'telemetry' diteruskan ke fungsi 'crud.create_telemetry'.
-    4. Data disimpan ke PostgreSQL melalui SQLAlchemy.
-    5. Mengembalikan objek telemetry lengkap dengan ID dan Timestamp (schemas.TelemetryResponse).
+    Endpoint POST untuk Menerima Data Deteksi Baru.
     """
-    # Memanggil fungsi CRUD untuk menyimpan data ke database
     return crud.create_telemetry(db=db, telemetry=telemetry)
 
 @app.get("/telemetry/", response_model=List[schemas.TelemetryResponse])
@@ -73,20 +63,35 @@ def get_telemetries_endpoint(
     db: Session = Depends(get_db)
 ):
     """
-    Endpoint GET untuk Mengambil Riwayat Deteksi
-    --------------------------------------------
-    Endpoint ini digunakan oleh Frontend atau aplikasi Monitoring untuk melihat data deteksi.
-    
-    Alur Logika:
-    1. Menerima query parameter 'skip' dan 'limit' untuk fitur pagination.
-    2. Memanggil 'crud.get_telemetries' untuk menarik data dari database.
-    3. Mengembalikan list objek telemetry dalam format yang sesuai dengan 'TelemetryResponse'.
+    Endpoint GET untuk Mengambil Riwayat Deteksi.
     """
-    # Mengambil data dari database menggunakan fungsi CRUD
     telemetries = crud.get_telemetries(db, skip=skip, limit=limit)
     return telemetries
 
-# 5. Database Health Check (Opsional untuk Debugging)
+# 5. System Health Endpoints
+
+@app.post("/system-health/", response_model=schemas.SystemHealthResponse, status_code=201)
+def create_system_health_endpoint(
+    health: schemas.SystemHealthCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint untuk menerima data kesehatan sistem dari ROS 2.
+    """
+    return crud.create_system_health(db=db, health=health)
+
+@app.get("/system-health/latest", response_model=schemas.SystemHealthResponse)
+def get_latest_health_endpoint(db: Session = Depends(get_db)):
+    """
+    Endpoint untuk mengambil status kesehatan sistem terbaru untuk dashboard.
+    """
+    health = crud.get_latest_system_health(db)
+    if health is None:
+        raise HTTPException(status_code=404, detail="No health data found")
+    return health
+
+# 6. Database Health Check (Opsional untuk Debugging)
+
 @app.get("/health-db")
 def check_db_connection(db: Session = Depends(get_db)):
     """

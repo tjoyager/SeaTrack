@@ -15,19 +15,32 @@ class YoloNode(Node):
         super().__init__('yolo_node')
         
         # 1. Deklarasi Parameter Model
-        # Mendapatkan path absolut ke folder project untuk default value
-        default_model_path = os.path.join(os.path.expanduser('~'), 'Project', 'SeaTrack', 'ml_models', 'weights', 'yolo11n_seatrack_best.pt')
+        # Prioritas sekarang diberikan ke folder hasil export OpenVINO
+        home_dir = os.path.expanduser('~')
+        default_openvino_path = os.path.join(home_dir, 'Project', 'SeaTrack', 'ml_models', 'weights', 'yolo11n_seatrack_best_openvino_model')
+        default_pt_path = os.path.join(home_dir, 'Project', 'SeaTrack', 'ml_models', 'weights', 'yolo11n_seatrack_best.pt')
         
-        self.declare_parameter('model_path', default_model_path)
+        self.declare_parameter('model_path', default_openvino_path)
         model_path = self.get_parameter('model_path').get_parameter_value().string_value
         
-        # 2. Inisialisasi model YOLOv11
-        if not os.path.exists(model_path):
-            self.get_logger().warn(f'Model kustom tidak ditemukan di {model_path}. Menggunakan model default yolo11n.pt')
+        # 2. Inisialisasi model YOLOv11 dengan Pengecekan Format
+        if os.path.exists(model_path):
+            # Jika yang ditemukan adalah folder OpenVINO
+            if 'openvino' in model_path.lower():
+                self.get_logger().info('--- [OPTIMASI] Sistem berjalan menggunakan OpenVINO Inference Engine ---')
+            else:
+                self.get_logger().info(f'Memuat model kustom standar: {model_path}')
+        elif os.path.exists(default_pt_path):
+            # Fallback ke file .pt jika folder OpenVINO belum ada
+            self.get_logger().warn(f'Model OpenVINO tidak ditemukan di {model_path}. Menggunakan file .pt kustom.')
+            model_path = default_pt_path
+        else:
+            # Fallback terakhir ke model standar ultralytics
+            self.get_logger().warn('Model kustom tidak ditemukan. Menggunakan model default yolo11n.pt')
             model_path = 'yolo11n.pt'
         
-        self.get_logger().info(f'Memuat model dari: {model_path}')
-        self.model = YOLO(model_path)
+        self.get_logger().info(f'Path Model Aktif: {model_path}')
+        self.model = YOLO(model_path, task='detect')
         
         # Inisialisasi CvBridge untuk konversi antara ROS 2 Image dan OpenCV
         self.bridge = CvBridge()

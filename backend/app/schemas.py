@@ -33,29 +33,40 @@ class TelemetryCreate(TelemetryBase):
     TelemetryCreate
     ---------------
     Model ini digunakan khusus untuk data yang datang dari ROS 2 ke API.
-    Model ini mewarisi semua field dari TelemetryBase.
     """
-    # Saat ini tidak ada tambahan field khusus untuk create,
-    # namun class ini dibuat agar struktur kode tetap bersih jika nanti ada field khusus input.
     pass
 
 class TelemetryResponse(TelemetryBase):
     """
     TelemetryResponse
     -----------------
-    Model ini digunakan untuk format response yang dikirimkan balik ke client (Frontend/Mobile).
-    Menambahkan field 'id' dan 'timestamp' yang dihasilkan secara otomatis oleh database.
+    Model ini digunakan untuk format response yang dikirimkan balik ke client.
     """
-    # ID unik dari database
     id: int
-    
-    # Waktu otomatis saat data masuk
     timestamp: datetime
 
     class Config:
-        """
-        Konfigurasi Pydantic untuk mendukung SQLAlchemy ORM.
-        Ini memungkinkan Pydantic untuk membaca data langsung dari objek SQLAlchemy
-        (misal: data.id bukannya data['id']).
-        """
+        from_attributes = True
+
+class SystemHealthBase(BaseModel):
+    """
+    Model dasar untuk data kesehatan sistem.
+    """
+    cpu_usage: float = Field(..., description="Persentase penggunaan CPU")
+    ram_usage: float = Field(..., description="Persentase penggunaan RAM")
+
+class SystemHealthCreate(SystemHealthBase):
+    """
+    Schema untuk membuat data kesehatan sistem baru.
+    """
+    pass
+
+class SystemHealthResponse(SystemHealthBase):
+    """
+    Schema untuk mengirimkan data kesehatan sistem ke Frontend.
+    """
+    id: int
+    timestamp: datetime
+
+    class Config:
         from_attributes = True

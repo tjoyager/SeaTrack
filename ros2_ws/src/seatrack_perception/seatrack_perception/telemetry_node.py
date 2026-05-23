@@ -6,87 +6,98 @@ from std_msgs.msg import String
 import json
 import requests
 import time
+import psutil
 
 class TelemetryNode(Node):
     """
-    Node ROS 2 yang bertugas mengirimkan metadata deteksi ke Backend FastAPI.
-    Berfungsi sebagai jembatan (bridge) antara ekosistem ROS 2 dan Web API.
+    Node ROS 2 yang bertugas mengirimkan metadata deteksi dan 
+    kesehatan sistem (CPU/RAM) ke Backend FastAPI.
     """
     def __init__(self):
         super().__init__('telemetry_node')
         
-        # Subscriber untuk menerima data JSON dari yolo_node
+        # 1. Subscriber untuk Data Deteksi
         self.subscription = self.create_subscription(
             String,
             '/seatrack/detection/data',
             self.listener_callback,
             10)
             
-        # URL Backend FastAPI
-        self.api_url = "http://127.0.0.1:8000/telemetry/"
+        # 2. Konfigurasi API
+        self.api_base_url = "http://127.0.0.1:8000"
+        self.telemetry_url = f"{self.api_base_url}/telemetry/"
+        self.health_url = f"{self.api_base_url}/system-health/"
         
-        # Logika Rate Limiting
+        # 3. Timer untuk Monitoring Sistem (Kirim data health setiap 5 detik)
+        self.health_timer = self.create_timer(5.0, self.send_system_health)
+        
+        # Logika Rate Limiting untuk Deteksi
         self.last_send_time = 0
-        self.send_interval = 2.0  # Minimal 2 detik sekali
+        self.send_interval = 2.0
         
-        self.get_logger().info('Telemetry Node aktif dengan perbaikan payload schema.')
+        self.get_logger().info('Telemetry Node aktif dengan fitur Health Monitoring.')
+
+    def send_system_health(self):
+        """
+        Mengambil data CPU/RAM dan mengirimkannya ke endpoint /system-health/
+        """
+        try:
+            cpu = psutil.cpu_percent()
+            ram = psutil.virtual_memory().percent
+            
+            payload = {
+                "cpu_usage": float(cpu),
+                "ram_usage": float(ram)
+            }
+            
+            response = requests.post(self.health_url, json=payload, timeout=1.0)
+            
+            if response.status_code == 201:
+                # Log status setiap kali kirim (bisa dimatikan jika terlalu berisik)
+                # self.get_logger().info(f"Health Sent: CPU {cpu}% | RAM {ram}%")
+                pass
+            else:
+                self.get_logger().error(f"Gagal kirim Health! Status: {response.status_code}")
+                
+        except Exception as e:
+            self.get_logger().warn(f"Gagal monitor sistem: {str(e)}")
 
     def listener_callback(self, msg):
         """
-        Fungsi callback untuk memproses data deteksi dan mengirimkannya ke backend.
+        Fungsi callback untuk memproses data deteksi.
         """
         current_time = time.time()
         
-        # 1. CEK RATE LIMIT (SINKRONISASI FREKUENSI)
         if (current_time - self.last_send_time) < self.send_interval:
             return
 
         try:
-            # 2. PARSING DATA JSON
             detections = json.loads(msg.data)
-            
             if not detections:
                 return
 
-            # Flag untuk mencatat apakah setidaknya ada satu pengiriman berhasil
             any_success = False
-
-            # 3. KIRIM DATA KE BACKEND
-            # Karena API (TelemetryCreate) menerima satu objek deteksi per request,
-            # kita melakukan iterasi pada setiap objek yang ditemukan di frame ini.
             for det in detections:
-                # Menyiapkan payload agar SESUAI PERSIS dengan Pydantic TelemetryCreate
-                # Kita menambahkan dummy latitude & longitude sesuai permintaan.
                 payload = {
-                    "latitude": 0.0,                    # Dummy latitude (float)
-                    "longitude": 0.0,                   # Dummy longitude (float)
-                    "object_class": det['class'],      # Nama class (string)
-                    "confidence_score": det['confidence'] # Skor confidence (float)
+                    "latitude": 0.0,
+                    "longitude": 0.0,
+                    "object_class": det['class'],
+                    "confidence_score": det['confidence']
                 }
                 
-                # Melakukan POST request
-                response = requests.post(self.api_url, json=payload, timeout=1.0)
+                response = requests.post(self.telemetry_url, json=payload, timeout=1.0)
                 
-                # 4. LOGGING DAN VALIDASI
                 if response.status_code == 201:
                     self.get_logger().info(f"Berhasil: [{payload['object_class']}] tersimpan ke database.")
                     any_success = True
-                else:
-                    # MENCETAK DETAIL ERROR (Penting untuk debug 422 Unprocessable Entity)
-                    # response.text akan berisi detail field mana yang salah menurut Pydantic di FastAPI.
-                    self.get_logger().error(
-                        f"Gagal kirim! Status: {response.status_code} | "
-                        f"Detail: {response.text}"
-                    )
 
-            # Update waktu pengiriman terakhir jika ada data yang berhasil dikirim di frame ini
             if any_success:
                 self.last_send_time = current_time
 
         except json.JSONDecodeError:
             self.get_logger().error('Gagal parsing JSON dari yolo_node.')
         except requests.exceptions.RequestException as e:
-            self.get_logger().warn(f'Koneksi backend gagal: {str(e)}. Pastikan FastAPI aktif!')
+            self.get_logger().warn(f'Koneksi backend gagal: {str(e)}.')
 
 def main(args=None):
     rclpy.init(args=args)
