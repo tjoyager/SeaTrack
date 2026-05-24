@@ -23,6 +23,10 @@ class YoloNode(Node):
         self.declare_parameter('model_path', default_openvino_path)
         model_path = self.get_parameter('model_path').get_parameter_value().string_value
         
+        # Deklarasi Parameter Topik Gambar untuk mendukung fleksibilitas antara Gazebo dan Kamera Fisik
+        self.declare_parameter('image_topic', '/seatrack/camera/image_raw')
+        image_topic = self.get_parameter('image_topic').get_parameter_value().string_value
+        
         # 2. Inisialisasi model YOLOv11 dengan Pengecekan Format
         if os.path.exists(model_path):
             # Jika yang ditemukan adalah folder OpenVINO
@@ -45,10 +49,10 @@ class YoloNode(Node):
         # Inisialisasi CvBridge untuk konversi antara ROS 2 Image dan OpenCV
         self.bridge = CvBridge()
         
-        # Subscriber untuk menerima data gambar dari topik kamera
+        # Subscriber untuk menerima data gambar dari topik kamera (Dapat diremap via Launch File)
         self.subscription = self.create_subscription(
             Image,
-            '/seatrack/camera/image_raw',
+            image_topic,
             self.image_callback,
             10)
             
